@@ -1,7 +1,65 @@
+"""
+Spell checker.  Input validation is performed by auto_correct and input_words.
+
+Routes:
+GET /auto-correct/?link=<value>
+POST /insert-words (with json)
+
+"""
+
+import json
+
 from flask import Flask, request, jsonify
+from Levenshtein import distance
+
+MAX_DIST = 2  # Words within this Levenshtein distance are defined as similar
+app = Flask(__name__)
+
+
+class SpellTree(object):
+
+    """A tree that stores words.
+
+    Can query for a list of words at a specified Levenshtein distance.
+    """
+
+    def __init__(self, word=None):
+        self.word = word
+        # children are (SpellTree, int) where the int is LS distance
+        self.children = []
+
+    def insert(self, word):
+        """Returns parent of new node."""
+        if self.word is None:
+            self.word = word
+            return 'none'
+        if self.word is word:
+            return 'not_inserted'
+        else:
+            dist = distance(word, self.word)
+            for child in self.children:
+                if child[1] == dist:
+                    return child[0].insert(word)
+
+            self.children.append((SpellTree(word), dist))
+            return self.word
+
+    def query(self, word, min_dist=0, max_dist=MAX_DIST):
+        similar_words = []
+        for child in self.children:
+            if (child[1] >= min_dist) and (child[1] <= max_dist):
+                similar_words = similar_words + child[0].query(
+                    word,
+                    min_dist=child[1] - MAX_DIST,
+                    max_dist=child[1] + MAX_DIST
+                )
+        if distance(self.word, word) <= MAX_DIST:
+            return similar_words + self.word
+        else:
+            return similar_words
+
 
 t = SpellTree()
-app = Flask(__name__)
 
 
 @app.route('/auto-correct/', methods=['GET'])
@@ -41,7 +99,11 @@ def insert_words():
     global t
 
     input_json = request.get_json()
-    return jsonify(closest_parent=insert_json(input_json, t))
+
+    # TODO: validate input
+
+    input_list = json.loads(input_json)['links']
+    return jsonify(closest_parent=insert_list(input_list, t))
 
 
 def find_neighbors(word, tree):
@@ -55,29 +117,22 @@ def find_neighbors(word, tree):
 
     :rtype: string list
     """
+    return tree.query(word)
 
 
-def insert_json(json, tree):
-    """Inserts strings in 'links' list in input json into tree.  Returns list
-    of closest parents as specifed in insert_words.
+def insert_list(lst, tree):
+    """Inserts words into tree.  Returns list of closest parents as specifed in
+    insert_words.
 
-    :param json: contains entry 'list' which has list of words
+    :param lst: list of input words
     :param tree: SpellTree to insert to
 
     :returns: list of strings corresponding to closest parents of insert words
 
     :rtype: string list
     """
+    output = []
+    for word in lst:
+        output = output + tree.insert(word)
 
-
-class SpellTree(object):
-    def __init__(self, word):
-        self.word = word
-        self.children = []
-        self.distance = []
-
-    def insert(self, word):
-        raise Exception('Unimplemented')
-
-    def query(self, word):
-        raise Exception('Unimplemented')
+    return output
