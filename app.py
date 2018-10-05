@@ -7,8 +7,6 @@ POST /insert-words (with json)
 
 """
 
-import json
-
 from flask import Flask, request, jsonify
 from Levenshtein import distance
 
@@ -33,7 +31,7 @@ class SpellTree(object):
         if self.word is None:
             self.word = word
             return 'none'
-        if self.word is word:
+        if self.word == word:
             return 'not_inserted'
         else:
             dist = distance(word, self.word)
@@ -54,7 +52,7 @@ class SpellTree(object):
                     max_dist=child[1] + MAX_DIST
                 )
         if distance(self.word, word) <= MAX_DIST:
-            return similar_words + self.word
+            return similar_words.append(self.word)
         else:
             return similar_words
 
@@ -78,10 +76,11 @@ def auto_correct():
     global t
 
     link = request.args.get('link', '')
+
     return jsonify(links=find_neighbors(link, t))
 
 
-@app.route('/insert-words', methods=['POST', 'GET'])
+@app.route('/insert-words', methods=['POST'])
 def insert_words():
     """POST /insert-words route.
 
@@ -102,7 +101,7 @@ def insert_words():
 
     # TODO: validate input
 
-    input_list = json.loads(input_json)['links']
+    input_list = input_json['links']
     return jsonify(closest_parent=insert_list(input_list, t))
 
 
@@ -133,6 +132,6 @@ def insert_list(lst, tree):
     """
     output = []
     for word in lst:
-        output = output + tree.insert(word)
+        output.append(tree.insert(word))
 
     return output
