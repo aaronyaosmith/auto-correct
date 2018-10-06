@@ -1,10 +1,10 @@
 """
 Spell checker.  Input validation is performed by auto_correct and input_words.
 
-Routes:
-GET /auto-correct/?link=<value>
-POST /insert-words (with json)
+Levenshtein distance computation is performed by a third-party library called
+python-Levenshtein.  It's available as a pip package!
 
+Routes: GET /auto-correct/?link=<value> POST /insert-words (with json)
 """
 
 from flask import Flask, request, jsonify
@@ -15,7 +15,6 @@ app = Flask(__name__)
 
 
 class SpellTree(object):
-
     """A tree that stores words.
 
     Can query for a list of words at a specified Levenshtein distance.
