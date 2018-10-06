@@ -1,4 +1,4 @@
-init:
+install:
 	pip install -r requirements.txt && pip install -e .
 
 test:
@@ -6,5 +6,3 @@ test:
 
 run:
 	export FLASK_APP='ac/ac.py' && flask run
-
-.PHONY: init test
