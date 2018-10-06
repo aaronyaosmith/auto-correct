@@ -7,7 +7,7 @@ python-Levenshtein.  It's available as a pip package!
 Routes: GET /auto-correct/?link=<value> POST /insert-words (with json)
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 from Levenshtein import distance
 
 MAX_DIST = 2  # Words within this Levenshtein distance are defined as similar
@@ -41,17 +41,15 @@ class SpellTree(object):
             self.children.append((SpellTree(word), dist))
             return self.word
 
-    def query(self, word, min_dist=0, max_dist=MAX_DIST):
+    def query(self, word):
         similar_words = []
+        dist = distance(self.word, word)
         for child in self.children:
-            if (child[1] >= min_dist) and (child[1] <= max_dist):
-                similar_words = similar_words + child[0].query(
-                    word,
-                    min_dist=child[1] - MAX_DIST,
-                    max_dist=child[1] + MAX_DIST
-                )
-        if distance(self.word, word) <= MAX_DIST:
-            return similar_words.append(self.word)
+            if (child[1] >= dist - MAX_DIST) and (child[1] <= dist + MAX_DIST):
+                similar_words = similar_words + child[0].query(word)
+        if dist <= MAX_DIST:
+            similar_words.append(self.word)
+            return similar_words
         else:
             return similar_words
 
@@ -98,7 +96,8 @@ def insert_words():
 
     input_json = request.get_json()
 
-    # TODO: validate input
+    if valid_links(input_json) is False:
+        return abort(400)
 
     input_list = input_json['links']
     return jsonify(closest_parent=insert_list(input_list, t))
@@ -134,3 +133,26 @@ def insert_list(lst, tree):
         output.append(tree.insert(word))
 
     return output
+
+
+def valid_links(links):
+    """Determines validity of input link JSON.
+
+    JSON must have a single entry 'links' which contains a list of strings.
+
+    :param links: Dictionary representing input JSON
+    :returns: True if valid, False if not
+    :rtype: boolean
+
+    """
+    if type(links) is not dict:
+        return False
+    if len(links) is not 1:
+        return False
+    if 'links' not in links:
+        return False
+    if type(links['links']) is not list:
+        return False
+    if not list or not all(isinstance(s, str) for s in links['links']):
+        return False
+    return True
