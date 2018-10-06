@@ -103,6 +103,11 @@ def insert_words():
     return jsonify(closest_parent=insert_list(input_list, t))
 
 
+@app.route('/')
+def home():
+    return "hi, you've reached Aaron Yao-Smith's project. Welcome!!"
+
+
 def find_neighbors(word, tree):
     """Returns list of strings containing all words in tree of distance <= 2
     from query word.

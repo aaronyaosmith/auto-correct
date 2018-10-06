@@ -1,4 +1,3 @@
--e git+https://github.com/aaronyaosmith/auto-correct.git@f3848fb3d464691f72a3166c571506d4ba900303#egg=ac
 atomicwrites==1.2.1
 attrs==18.2.0
 Click==7.0
