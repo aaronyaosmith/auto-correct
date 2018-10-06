@@ -1,5 +1,5 @@
 init:
-	pip install -r requirements.txt | pip install -e .
+	pip install -r requirements.txt && pip install -e .
 
 test:
 	pytest --cov-report term-missing --cov=ac tests
